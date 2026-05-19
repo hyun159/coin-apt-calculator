@@ -1,0 +1,11 @@
+---
+# handlers file for nginx
+- name: nginx reload
+  ansible.builtin.service:
+    name: nginx
+    state: reloaded
+
+- name: nginx restart
+  ansible.builtin.service:
+    name: nginx
+    state: restarted

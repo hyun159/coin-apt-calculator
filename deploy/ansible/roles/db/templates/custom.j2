@@ -1,0 +1,22 @@
+
+# /etc/my.cnf.d/custom.cnf
+
+[mysqld]
+# 접속 허용 범위
+bind-address = 0.0.0.0          # 모든 IP 허용 (기본은 localhost만)
+
+# 문자셋
+character-set-server = utf8mb4   # 한글/이모지 안 깨지게
+
+# 커넥션
+max_connections = 500            # 동시 접속 수 (기본 151)
+
+# 포트
+port = 3306
+
+# 로그
+slow_query_log = 1               # 느린 쿼리 로그 켜기
+long_query_time = 2              # 2초 넘는 쿼리 기록
+
+# 메모리
+innodb_buffer_pool_size = 1G     # DB 캐시 메모리 (서버 RAM의 50~70%)

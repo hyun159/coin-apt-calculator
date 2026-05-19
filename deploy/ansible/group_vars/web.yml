@@ -1,0 +1,10 @@
+
+nginx_http: 80
+nginx_https: 443
+
+coinapp_servers:
+  - 10.0.2.12
+  - 10.0.2.13
+
+coinapp_port: 8000
+

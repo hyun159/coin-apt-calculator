@@ -1,0 +1,12 @@
+---
+# handlers file for db
+
+- name: db restart
+  ansible.builtin.service:
+    name: mariadb-server
+    state: restarted
+    
+- name: db reload
+  ansible.builtin.service:
+    name: mariadb-server
+    state: reloaded

@@ -1,0 +1,126 @@
+---
+# tasks file for nginx
+
+# nginx 기본설정
+#1.nginx 설치
+#2.nginx 리버스 프록시 등록 (jinja2 템플릿 사용)
+#3.nginx enable --now
+#4.nginx selinux 네트워크 연결 허용
+
+- name: 1.nginx 설치
+  ansible.builtin.dnf:
+    name: nginx
+    state: present
+
+#- name: 2. nginx 리버스 프록시 등록 (jinja2 템플릿 사용)
+ # template:
+ #   src: nginx.conf.j2
+ #   dest: /etc/nginx/nginx.conf
+ #   owner: root
+ #   group: root
+ #   mode: '0644'
+ # notify: nginx reload
+  
+- name: 3.nginx enable --now
+  ansible.builtin.service:
+    name: nginx
+    enabled: yes
+    state: started
+
+  
+- name: 4. SELinux - Nginx 네트워크 연결 허용
+  ansible.posix.seboolean:
+    name: httpd_can_network_connect
+    state: yes
+    persistent: yes
+
+# ----------------------------------------------------------------------------------
+# ssl 설정
+
+# 1. openssl 설치
+# 2. 인증서 저장할 디렉토리 생성
+# 3. toch /etc/pki/tls/nginx/ca.key ... server.crt
+# 4. ca.key, ca.csr, ca.crt, server.key, server.csr, server.crt 생성
+# 5. nginx.conf template 설정
+
+
+- name: 1. openssl 설치
+  ansible.builtin.dnf:
+    name: openssl
+    state: present
+
+- name: 2. cryptography 라이브러리 설치
+  ansible.builtin.dnf:
+    name: python3-cryptography
+    state: present
+
+- name: 3. 인증서 저장할 디렉토리 생성
+  ansible.builtin.file:
+    path: "/etc/pki/tls/nginx"
+    state: directory
+    mode: 0600
+
+
+- name: 4-1. ca.key
+  community.crypto.openssl_privatekey:
+    path: /etc/pki/tls/nginx/ca.key
+    type: RSA
+    size: 2048
+    mode: '0400'
+
+- name: 4-2. ca.csr
+  community.crypto.openssl_csr:
+    path: /etc/pki/tls/nginx/ca.csr
+    privatekey_path: /etc/pki/tls/nginx/ca.key
+    common_name: "My CA"
+    basic_constraints:
+      - "CA:TRUE"
+
+- name: 4-3. ca.crt (csr에 key 서명)
+  community.crypto.x509_certificate:
+    path: /etc/pki/tls/nginx/ca.crt
+    csr_path: /etc/pki/tls/nginx/ca.csr
+    privatekey_path: /etc/pki/tls/nginx/ca.key
+    provider: selfsigned
+
+- name: 4-4. server.key
+  community.crypto.openssl_privatekey:
+    path: /etc/pki/tls/nginx/server.key
+    type: RSA
+    size: 2048
+    mode: '0400'
+
+
+- name: 4-5. server.csr
+  community.crypto.openssl_csr:
+    path: /etc/pki/tls/nginx/server.csr
+    privatekey_path: /etc/pki/tls/nginx/server.key
+    common_name: "My server"
+  
+- name: 4-6. server.crt (ssl 인증서 생성)
+  community.crypto.x509_certificate:
+    path: /etc/pki/tls/nginx/server.crt
+    csr_path: /etc/pki/tls/nginx/server.csr
+    privatekey_path: /etc/pki/tls/nginx/server.key
+    provider: ownca
+    ownca_path: /etc/pki/tls/nginx/ca.crt
+    ownca_privatekey_path: /etc/pki/tls/nginx/ca.key
+
+
+- name: 5. 443 포트개방
+  ansible.builtin.firewalld:
+    service: https
+    permanent: true
+    state: enabled
+    immediate: true
+  
+- name: 6. nginx 리버스 프록시 등록 (jinja2 템플릿 사용)
+  template:
+    src: nginx.conf.j2
+    dest: /etc/nginx/nginx.conf
+    owner: root
+    group: root
+    mode: '0644'
+  notify:
+    - nginx reload
+    - nginx restart

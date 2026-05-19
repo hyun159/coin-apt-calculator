@@ -1,0 +1,14 @@
+[Unit]
+Description=coin-apt service
+After=network.target
+
+
+[Service]
+User=coin
+ExecStart=/usr/bin/python3 /opt/coin-apt-calculator/coin-apt/app.py
+WorkingDirectory=/opt/coin-apt-calculator/coin-apt
+Restart=always
+
+
+[Install]
+WantedBy=multi-user.target

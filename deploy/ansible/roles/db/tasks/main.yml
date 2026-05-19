@@ -1,0 +1,145 @@
+---
+# tasks file for db
+
+#1. db 설치
+#2. db 활성화
+
+# (mysql_secure_installation)
+#3. db 테스트 유저 삭제
+#4 .db root 유저 인증 방식 설정
+#5. test db 삭제
+#6. DB 내부 reload
+
+# (DB 생성, DB생성과 승인)
+#7. DB 생성
+#8. DB USER 생성과 승인
+
+# firewalld 설정
+# selinux 설정
+
+
+
+# db 설정 ----------------------------------------------------------------------------------------------------------------
+
+- name: db 설치
+  ansible.builtin.dnf:
+    name:
+      - mariadb
+      - mariadb-server
+    state: present
+
+- name: PyMySQL 설치
+  ansible.builtin.dnf:
+    name: python3-PyMySQL
+    state: present
+
+- name: db custom.conf 파일 생성
+  ansible.builtin.file:
+    path: /etc/my.cnf.d/custom.cnf
+    state: touch
+    owner: root
+    group: root
+    mode: '0600'
+  notify: db restart
+
+- name: db 활성화
+  ansible.builtin.service:
+    name: mariadb
+    enabled: yes
+    state: started
+    
+
+# (mysql_secure_installation)
+
+- name: db 테스트 유저 삭제
+  community.mysql.mysql_user:
+    name: ''
+    host_all: yes
+    state: absent
+    login_unix_socket: /var/lib/mysql/mysql.sock
+
+# 비밀번호가 아닌 unix_socket 방식으로 db의 root에 접속
+# 소켓 경로는 /var/lib/mysql/mysql.sock
+- name: db root 유저 인증 방식 설정
+  community.mysql.mysql_user:
+    name: root
+    host: "{{ item }}"
+    plugin: unix_socket
+    login_unix_socket: /var/lib/mysql/mysql.sock 
+  loop:
+    - localhost
+    - 127.0.0.1
+    - ::1
+  
+- name: test db 삭제
+  community.mysql.mysql_db:
+    name: test
+    state: absent
+    login_unix_socket: /var/lib/mysql/mysql.sock
+
+
+- name: db reload
+  community.mysql.mysql_query:
+    query: "FLUSH PRIVILEGES;"
+    login_unix_socket: /var/lib/mysql/mysql.sock
+
+
+# (DB 생성, DB생성과 승인)
+
+- name: db 생성
+  community.mysql.mysql_db:
+    name: coin
+    state: present
+    login_unix_socket: /var/lib/mysql/mysql.sock
+
+- name: db 계정 생성 승인 설정
+  community.mysql.mysql_user:
+    name: coin
+    password: "{{ db_passwd }}"
+    host: '%'
+    priv: 'coin.*:ALL'
+    state: present
+    login_unix_socket: /var/lib/mysql/mysql.sock
+    # 컨트롤노드가 db내부로 접속할 때 사용할 db소켓파일
+
+
+# firewalld 설정 ----------------------------------------------------------------------------------------------------------------
+
+- name: 방화벽 초기화 및 rich-rule 등록
+  block:
+
+  - name: 기존 방화벽 초기화
+    ansible.builtin.file:
+     path: /etc/firewalld/zones/public.xml
+     state: absent
+  
+
+  - name: 접속 가능 서버 rich-rule 등록
+    ansible.posix.firewalld:
+     rich_rule: 'rule family="ipv4" source address="{{ item.ip }}" port port="{{ item.port }}" protocol="tcp" accept'
+     permanent: true
+     state: enabled
+     immediate: true
+    loop: "{{ firewalld_rich_rule }}"
+
+  always:
+    - name: 방화벽 reload
+      ansible.builtin.service:
+        name: firewalld
+        state: reloaded
+
+
+# selinux ----------------------------------------------------------------------------------------------------------------
+- name: selinux 3306 포트 허용
+  community.general.seport:
+    ports: "{{ firewalld_rich_rule[1].port }}"
+    proto: tcp
+    setype: mysqld_port_t
+    state: present
+  
+- name: mysql 네트워크 통신 허용
+  ansible.posix.seboolean:
+    name: mysql_connect_any
+    state: yes
+    persistent: yes
+    

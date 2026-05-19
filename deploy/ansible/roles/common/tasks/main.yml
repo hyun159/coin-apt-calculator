@@ -1,0 +1,66 @@
+---
+# tasks file for common
+
+# 1. 계정 생성
+# 2. sudoers 등록
+# 3. 공개키 등록
+# 4. sshd 보안 설정 ( 공개키 로그인 활성화 / 비밀번호 로그인 비활성화 )
+# 5. ssh reload ../common/handlers/main.yml
+# 6. well-know port firewalld 등록
+# 7. custom port firewalld 등록
+
+
+- name: 1. 계정 생성
+  ansible.builtin.user:
+    name: coin
+    state: present
+    shell: /bin/bash
+
+
+- name: 2. sudoers 등록
+  ansible.builtin.lineinfile:
+    path: /etc/sudoers.d/coin
+    line: "coin        ALL=(ALL)       NOPASSWD: ALL"
+    create: yes
+
+- name: 3. 공개키 등록
+  ansible.posix.authorized_key:
+    user: coin
+    state: present
+    key: "{{ lookup('file', '/root/.ssh/id_ed25519.pub') }}"
+
+- name: 4. sshd 보안 설정 ( 공개키 로그인 활성화 )
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: "^#?PubkeyAuthentication"
+    line: "PubkeyAuthentication yes"
+  notify: 5. sshd reload
+
+- name: 4. sshd 보안 설정 ( 패스워드 로그인 비활성화 )
+  ansible.builtin.lineinfile:
+    path: //etc/ssh/sshd_config
+    regexp: "^#?PasswordAuthentication"
+    line: "PasswordAuthentication no"
+  notify: 5. sshd reload
+
+
+# loop사용
+# ../group_vars/all_servers.yml파일 service_name에 서비스 추가
+- name: "6. {{ item }} firewalld 등록"
+  ansible.posix.firewalld:
+    service: "{{ item }}"
+    permanent: yes
+    immediate: yes
+    state: enabled
+  loop: "{{ well_kown }}"
+
+
+- name: 7. custom port firewalld 등록
+  ansible.posix.firewalld:
+    port: "{{ item }}"
+    permanent: yes
+    immediate: yes
+    state: enabled
+  loop: "{{ custom_port }}"
+  when: custom_port is defined
+

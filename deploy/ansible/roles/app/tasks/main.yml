@@ -1,0 +1,80 @@
+---
+
+
+# tasks file for app
+
+#1. git 설치
+#2. pip 설치
+#3. git clone
+#4. app requirement 설치
+#5. app service 등록 (template 사용)
+#6. app enable 활성화
+
+
+- name: 1. git 설치
+  ansible.builtin.dnf:
+    name: git
+    state: present
+
+- name: 2. pip 설치
+  ansible.builtin.dnf:
+    name: python3-pip
+    state: present
+
+- name: 3. git clone
+  ansible.builtin.git:
+    repo: 'https://github.com/hyun159/coin-apt-calculator'
+    dest: /opt/coin-apt-calculator
+
+- name: 4. app requirement 설치 # gunicorn, flask
+  ansible.builtin.pip:
+    requirements: /opt/coin-apt-calculator/coin-apt/requirements.txt
+
+- name: pip 설치 결과 확인용 로그 출력
+  ansible.builtin.command: pip list
+  register: pip_list_result
+
+- name: 로그 보기
+  ansible.builtin.debug:
+    var: pip_list_result.stdout_lines
+
+- name: coin 앱이 존재할 경우
+  ansible.builtin.stat:
+    path: /etc/systemd/system/coin-apt.service
+  register: coin_service_file
+
+
+- name: 기존 coin앱 중지
+  ansible.builtin.systemd:
+    name: coin-apt.service
+    state: stopped
+    enabled: false
+  when: coin_service_file.stat.exists # register가 true면 동작 수행
+  notify:
+    - reloaded
+
+
+
+- name: 기존 coin앱 서비스 파일 삭제
+  ansible.builtin.file:
+    path: /etc/systemd/system/coin-apt.service
+    state: absent
+  when: coin_service_file.stat.exists
+  notify:
+    - reloaded
+
+    
+
+- name: 5. gunicorn 시스템 등록
+  template:
+    dest: /etc/systemd/system/gunicorn.service
+    src: gunicorn.j2
+  notify:
+    - reloaded
+   
+
+- name: 6. app enable 활성화
+  ansible.builtin.service:
+    name: gunicorn.service
+    enabled: yes
+    state: started

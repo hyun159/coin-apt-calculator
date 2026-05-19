@@ -1,0 +1,35 @@
+events { }
+
+http { 
+    # 1. 업스트림 정의 (그룹 만들기)
+    upstream coinapp {
+        {% for server in coinapp_servers %}
+        server {{ server }}:{{ coinapp_port }};
+        {% endfor %}
+    }
+
+    # 2. http
+    server {
+        listen {{ nginx_http }};
+        server_name _;
+        return 301 https://$host$request_uri;
+
+    }
+
+    # 3. https
+    server {
+        listen {{ nginx_https }} ssl;
+        server_name _;
+
+        ssl_certificate /etc/pki/tls/nginx/server.crt;
+        ssl_certificate_key /etc/pki/tls/nginx/server.key;
+
+        location / {
+            proxy_pass http://coinapp;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+    }
+}   

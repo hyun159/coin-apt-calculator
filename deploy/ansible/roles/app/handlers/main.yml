@@ -1,0 +1,12 @@
+---
+# handlers file for app
+
+- name: restart
+  service:
+    name: gunicorn.service
+    state: restarted
+
+- name: reloaded
+  ansible.builtin.systemd:
+    daemon_reload: yes
+    

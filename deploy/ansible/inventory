@@ -1,0 +1,15 @@
+[web]
+node1 ansible_host=10.0.2.11
+
+[app]
+node2 ansible_host=10.0.2.12
+node3 ansible_host=10.0.2.13
+
+
+[db]
+node4 ansible_host=10.0.2.14
+
+[all_servers:children]
+web
+app
+db

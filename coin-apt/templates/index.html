@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>코인 × 아파트 계산기 | 김해시</title>
+    <style>
+        @import url('API_KEY');
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg: #0a0a0f;
+            --surface: #12121a;
+            --surface2: #1a1a26;
+            --border: #2a2a3a;
+            --text: #e8e8f0;
+            --text-dim: #8888a0;
+            --accent: #6c5ce7;
+            --green: #00d2a0;
+            --red: #ff4757;
+            --orange: #ffa502;
+            --blue: #4a90d9;
+        }
+
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* 헤더 */
+        header {
+            text-align: center;
+            padding: 40px 0 30px;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 30px;
+        }
+
+        header h1 {
+            font-size: 2rem;
+            font-weight: 900;
+            letter-spacing: -1px;
+            margin-bottom: 8px;
+        }
+
+        header h1 span.coin { color: var(--orange); }
+        header h1 span.apt { color: var(--blue); }
+
+        header p {
+            color: var(--text-dim);
+            font-size: 0.9rem;
+        }
+
+        .last-update {
+            color: var(--text-dim);
+            font-size: 0.8rem;
+            margin-top: 8px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* 코인 카드 */
+        .coin-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-bottom: 30px;
+        }
+
+        .coin-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            transition: border-color 0.2s;
+        }
+
+        .coin-card:hover {
+            border-color: var(--accent);
+        }
+
+        .coin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .coin-name {
+            font-weight: 700;
+            font-size: 1.05rem;
+        }
+
+        .coin-symbol {
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--text-dim);
+            font-size: 0.85rem;
+            background: var(--surface2);
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+
+        .coin-price {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .coin-change {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .coin-change.up { color: var(--green); }
+        .coin-change.down { color: var(--red); }
+
+        .coin-detail {
+            display: flex;
+            gap: 16px;
+            margin-top: 12px;
+            font-size: 0.78rem;
+            color: var(--text-dim);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* 계산기 */
+        .calculator {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 30px;
+        }
+
+        .calc-title {
+            font-weight: 700;
+            font-size: 1.1rem;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .calc-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .calc-row select,
+        .calc-row input {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1rem;
+            padding: 10px 14px;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            outline: none;
+        }
+
+        .calc-row select:focus,
+        .calc-row input:focus {
+            border-color: var(--accent);
+        }
+
+        .calc-row input { width: 160px; }
+
+        .calc-result {
+            margin-top: 16px;
+            padding: 16px;
+            background: var(--surface2);
+            border-radius: 8px;
+            font-size: 1.1rem;
+            display: none;
+        }
+
+        .calc-result .amount {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 700;
+            font-size: 1.4rem;
+            color: var(--orange);
+        }
+
+        /* 아파트 테이블 */
+        .apt-section {
+            margin-bottom: 30px;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .section-title {
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+
+        .apt-count {
+            color: var(--text-dim);
+            font-size: 0.85rem;
+        }
+
+        .search-box {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .search-box input {
+            flex: 1;
+            font-family: 'Noto Sans KR', sans-serif;
+            font-size: 0.9rem;
+            padding: 10px 14px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            outline: none;
+        }
+
+        .search-box input:focus { border-color: var(--accent); }
+
+        .apt-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.88rem;
+        }
+
+        .apt-table thead {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .apt-table th {
+            background: var(--surface2);
+            color: var(--text-dim);
+            font-weight: 500;
+            padding: 12px 10px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+            white-space: nowrap;
+        }
+
+        .apt-table td {
+            padding: 12px 10px;
+            border-bottom: 1px solid var(--border);
+            vertical-align: middle;
+        }
+
+        .apt-table tbody tr {
+            transition: background 0.15s;
+            cursor: pointer;
+        }
+
+        .apt-table tbody tr:hover {
+            background: var(--surface2);
+        }
+
+        .price-cell {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 600;
+            color: var(--orange);
+        }
+
+        .coin-equiv {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            color: var(--text-dim);
+        }
+
+        .date-cell {
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--text-dim);
+            font-size: 0.82rem;
+        }
+
+        .area-cell {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* 지도 */
+        .map-section {
+            margin-bottom: 30px;
+        }
+
+        #map {
+            width: 100%;
+            height: 400px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            background: var(--surface);
+        }
+
+        /* 로딩 */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-dim);
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            border: 3px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* 에러 */
+        .error-msg {
+            background: rgba(255, 71, 87, 0.1);
+            border: 1px solid var(--red);
+            border-radius: 8px;
+            padding: 12px 16px;
+            color: var(--red);
+            font-size: 0.9rem;
+            margin-bottom: 16px;
+            display: none;
+        }
+
+        /* 반응형 */
+        @media (max-width: 768px) {
+            .coin-grid { grid-template-columns: 1fr; }
+            .calc-row { flex-direction: column; align-items: stretch; }
+            .calc-row input { width: 100%; }
+            header h1 { font-size: 1.4rem; }
+            .apt-table { font-size: 0.8rem; }
+            .apt-table th, .apt-table td { padding: 8px 6px; }
+        }
+
+        /* 스크롤바 */
+        .table-wrap {
+            overflow-x: auto;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: var(--surface); }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+        /* 푸터 */
+        footer {
+            text-align: center;
+            padding: 30px 0;
+            color: var(--text-dim);
+            font-size: 0.8rem;
+            border-top: 1px solid var(--border);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><span class="coin">코인</span> × <span class="apt">아파트</span> 계산기</h1>
+            <p>실시간 코인 시세 + 김해시 아파트 실거래가</p>
+            <div class="last-update" id="lastUpdate">불러오는 중...</div>
+        </header>
+
+        <!-- 에러 메시지 -->
+        <div class="error-msg" id="errorMsg"></div>
+
+        <!-- 코인 시세 -->
+        <div class="coin-grid" id="coinGrid">
+            <div class="loading"><span class="spinner"></span> 코인 시세 불러오는 중...</div>
+        </div>
+
+        <!-- 계산기 -->
+        <div class="calculator">
+            <div class="calc-title">🧮 코인으로 아파트 환산</div>
+            <div class="calc-row">
+                <select id="calcCoin">
+                    <option value="KRW-BTC">비트코인 (BTC)</option>
+                    <option value="KRW-ETH">이더리움 (ETH)</option>
+                    <option value="KRW-XRP">리플 (XRP)</option>
+                </select>
+                <input type="number" id="calcAmount" placeholder="수량 입력" step="any" min="0">
+                <span style="color: var(--text-dim);">개 보유 시</span>
+            </div>
+            <div class="calc-result" id="calcResult">
+                <div>보유 가치: <span class="amount" id="calcValue">-</span> 원</div>
+                <div style="margin-top:8px; font-size:0.9rem; color:var(--text-dim);" id="calcApt"></div>
+            </div>
+        </div>
+
+        <!-- 지도 -->
+        <div class="map-section">
+            <div class="section-header">
+                <div class="section-title">📍 김해시 아파트 거래 위치</div>
+            </div>
+            <div id="map"></div>
+        </div>
+
+        <!-- 아파트 실거래가 -->
+        <div class="apt-section">
+            <div class="section-header">
+                <div class="section-title">🏢 김해시 최근 아파트 실거래가</div>
+                <div class="apt-count" id="aptCount">-</div>
+            </div>
+            <div class="search-box">
+                <input type="text" id="aptSearch" placeholder="아파트명 또는 동 이름으로 검색...">
+            </div>
+            <div class="table-wrap">
+                <table class="apt-table">
+                    <thead>
+                        <tr>
+                            <th>아파트</th>
+                            <th>동</th>
+                            <th>거래가</th>
+                            <th>BTC 환산</th>
+                            <th>면적(㎡)</th>
+                            <th>층</th>
+                            <th>거래일</th>
+                        </tr>
+                    </thead>
+                    <tbody id="aptBody">
+                        <tr><td colspan="7" class="loading"><span class="spinner"></span> 실거래가 불러오는 중...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <footer>
+            코인 시세: 업비트 API (실시간) · 아파트 실거래가: 국토교통부 공공데이터 (최근 3개월)<br>
+            Ansible 1주차 프로젝트 · 2026
+        </footer>
+    </div>
+
+    <!-- Leaflet Map (API 키 불필요) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+        let coinData = {};
+        let aptData = [];
+        let map = null;
+
+        // ===== 코인 시세 =====
+        async function loadCoins() {
+            try {
+                const resp = await fetch('/api/coins');
+                if (!resp.ok) throw new Error('코인 API 응답 실패');
+                coinData = await resp.json();
+                renderCoins();
+            } catch (e) {
+                document.getElementById('coinGrid').innerHTML =
+                    '<div class="loading" style="color:var(--red);">코인 시세 불러오기 실패</div>';
+            }
+        }
+
+        function renderCoins() {
+            const grid = document.getElementById('coinGrid');
+            const order = ['KRW-BTC', 'KRW-ETH', 'KRW-XRP'];
+            let html = '';
+
+            for (const key of order) {
+                const c = coinData[key];
+                if (!c) continue;
+
+                const changeClass = c.change >= 0 ? 'up' : 'down';
+                const changeSign = c.change >= 0 ? '+' : '';
+
+                html += `
+                <div class="coin-card">
+                    <div class="coin-header">
+                        <span class="coin-name">${c.name}</span>
+                        <span class="coin-symbol">${c.symbol}</span>
+                    </div>
+                    <div class="coin-price">${formatPrice(c.price)}<span style="font-size:0.8rem;color:var(--text-dim);"> 원</span></div>
+                    <div class="coin-change ${changeClass}">
+                        ${changeSign}${c.change.toFixed(2)}% (${changeSign}${formatPrice(c.change_price)}원)
+                    </div>
+                    <div class="coin-detail">
+                        <span>고가 ${formatPrice(c.high)}</span>
+                        <span>저가 ${formatPrice(c.low)}</span>
+                    </div>
+                </div>`;
+            }
+
+            grid.innerHTML = html;
+            document.getElementById('lastUpdate').textContent =
+                `마지막 업데이트: ${new Date().toLocaleTimeString('ko-KR')}`;
+        }
+
+        // ===== 아파트 =====
+        async function loadApartments() {
+            try {
+                const resp = await fetch('/api/apartments');
+                if (!resp.ok) throw new Error('아파트 API 응답 실패');
+                aptData = await resp.json();
+
+                if (aptData.length === 0) {
+                    showError('아파트 실거래가 데이터가 없습니다. API 키를 확인해주세요.');
+                }
+
+                renderApartments(aptData);
+            } catch (e) {
+                document.getElementById('aptBody').innerHTML =
+                    '<tr><td colspan="7" class="loading" style="color:var(--red);">실거래가 불러오기 실패 - API 키 확인 필요</td></tr>';
+            }
+        }
+
+        function renderApartments(data) {
+            const tbody = document.getElementById('aptBody');
+            const btcPrice = coinData['KRW-BTC'] ? coinData['KRW-BTC'].price : 0;
+
+            if (data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="loading">검색 결과 없음</td></tr>';
+                document.getElementById('aptCount').textContent = '0건';
+                return;
+            }
+
+            document.getElementById('aptCount').textContent = `${data.length}건`;
+
+            let html = '';
+            for (const a of data) {
+                const btcEquiv = btcPrice > 0 ? (a.price / btcPrice).toFixed(2) : '-';
+                html += `
+                <tr data-dong="${a.dong}" data-name="${a.name}">
+                    <td><strong>${a.name}</strong></td>
+                    <td>${a.dong}</td>
+                    <td class="price-cell">${formatMan(a.price_man)}</td>
+                    <td class="coin-equiv">${btcEquiv} BTC</td>
+                    <td class="area-cell">${a.area}</td>
+                    <td>${a.floor}층</td>
+                    <td class="date-cell">${a.date}</td>
+                </tr>`;
+            }
+
+            tbody.innerHTML = html;
+        }
+
+        // ===== 계산기 =====
+        function calculate() {
+            const coin = document.getElementById('calcCoin').value;
+            const amount = parseFloat(document.getElementById('calcAmount').value);
+            const result = document.getElementById('calcResult');
+
+            if (!amount || amount <= 0 || !coinData[coin]) {
+                result.style.display = 'none';
+                return;
+            }
+
+            const price = coinData[coin].price;
+            const total = price * amount;
+
+            document.getElementById('calcValue').textContent = formatPrice(Math.round(total));
+
+            // 매수 가능한 아파트 찾기
+            const affordable = aptData.filter(a => a.price <= total);
+            const aptInfo = document.getElementById('calcApt');
+
+            if (affordable.length > 0) {
+                const best = affordable[0]; // 가장 최근 거래
+                const count = affordable.length;
+                aptInfo.innerHTML =
+                    `김해시에서 매수 가능한 아파트: <strong style="color:var(--green);">${count}건</strong> ` +
+                    `(예: ${best.name} ${best.area}㎡ - ${formatMan(best.price_man)})`;
+            } else {
+                aptInfo.innerHTML = '현재 매수 가능한 김해시 아파트 거래가 없습니다.';
+            }
+
+            result.style.display = 'block';
+        }
+
+        document.getElementById('calcCoin').addEventListener('change', calculate);
+        document.getElementById('calcAmount').addEventListener('input', calculate);
+
+        // ===== 검색 =====
+        document.getElementById('aptSearch').addEventListener('input', function () {
+            const query = this.value.trim().toLowerCase();
+            if (!query) {
+                renderApartments(aptData);
+                return;
+            }
+            const filtered = aptData.filter(a =>
+                a.name.toLowerCase().includes(query) ||
+                a.dong.toLowerCase().includes(query)
+            );
+            renderApartments(filtered);
+        });
+
+        // ===== 지도 =====
+        // 김해시 동별 좌표 (주요 동)
+        const dongCoords = {
+            '내동': [35.2340, 128.8690],
+            '외동': [35.2450, 128.8550],
+            '삼계동': [35.2520, 128.8350],
+            '부원동': [35.2380, 128.8830],
+            '동상동': [35.2350, 128.8920],
+            '어방동': [35.2290, 128.8780],
+            '장유동': [35.1770, 128.8080],
+            '율하동': [35.1850, 128.8300],
+            '무계동': [35.1720, 128.8200],
+            '대청동': [35.2310, 128.8950],
+            '봉황동': [35.2370, 128.8770],
+            '칠산서부동': [35.2400, 128.8500],
+            '활천동': [35.2480, 128.8650],
+            '풍유동': [35.2200, 128.8650],
+            '안동': [35.2280, 128.8850],
+            '지내동': [35.2100, 128.8550],
+            '관동동': [35.1950, 128.8150],
+            '불암동': [35.2000, 128.8450],
+            '진영읍': [35.3060, 128.7380],
+            '주촌면': [35.2700, 128.7800],
+            '진례면': [35.2900, 128.7600],
+            '한림면': [35.3200, 128.8200],
+            '생림면': [35.3400, 128.8600],
+            '상동면': [35.3100, 128.9200],
+            '대동면': [35.2600, 128.9400],
+        };
+
+        function initMap() {
+            const container = document.getElementById('map');
+            map = L.map(container).setView([35.2285, 128.8894], 12);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+
+            if (aptData.length > 0) {
+                const dongSet = [...new Set(aptData.map(a => a.dong))];
+
+                dongSet.forEach(dong => {
+                    // 동 이름에서 좌표 찾기
+                    let coords = null;
+                    for (const [name, xy] of Object.entries(dongCoords)) {
+                        if (dong.includes(name) || name.includes(dong)) {
+                            coords = xy;
+                            break;
+                        }
+                    }
+
+                    if (coords) {
+                        const count = aptData.filter(a => a.dong === dong).length;
+                        const avgPrice = Math.round(
+                            aptData.filter(a => a.dong === dong)
+                                .reduce((sum, a) => sum + a.price_man, 0) / count
+                        );
+
+                        const marker = L.marker(coords).addTo(map);
+                        marker.bindPopup(
+                            `<strong>${dong}</strong><br>` +
+                            `거래 ${count}건<br>` +
+                            `평균 ${formatMan(avgPrice)}`
+                        );
+                    }
+                });
+            }
+        }
+
+        // ===== 유틸 =====
+        function formatPrice(n) {
+            return Number(n).toLocaleString('ko-KR');
+        }
+
+        function formatMan(man) {
+            if (man >= 10000) {
+                const eok = Math.floor(man / 10000);
+                const rest = man % 10000;
+                return rest > 0 ? `${eok}억 ${formatPrice(rest)}만` : `${eok}억`;
+            }
+            return `${formatPrice(man)}만`;
+        }
+
+        function showError(msg) {
+            const el = document.getElementById('errorMsg');
+            el.textContent = msg;
+            el.style.display = 'block';
+        }
+
+        // ===== 초기화 =====
+        async function init() {
+            await loadCoins();
+            await loadApartments();
+            calculate();
+            initMap();
+
+            // 코인 시세 30초마다 갱신
+            setInterval(async () => {
+                await loadCoins();
+                renderApartments(aptData); // BTC 환산 갱신
+                calculate();
+            }, 30000);
+        }
+
+        init();
+    </script>
+</body>
+</html>

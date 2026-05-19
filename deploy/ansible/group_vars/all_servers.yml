@@ -1,0 +1,6 @@
+
+# /common/tasks에서 firewalld loop문 변수로 사용
+well_kown:
+  - ssh
+  - http
+  - https

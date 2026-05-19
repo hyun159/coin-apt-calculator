@@ -1,0 +1,5 @@
+
+app_port: 5000
+
+custom_port:
+ - "{{ app_port }}/tcp"
