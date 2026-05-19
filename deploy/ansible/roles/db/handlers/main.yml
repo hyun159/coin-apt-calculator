@@ -3,10 +3,15 @@
 
 - name: db restart
   ansible.builtin.service:
-    name: mariadb-server
+    name: mariadb
     state: restarted
-    
+
 - name: db reload
   ansible.builtin.service:
-    name: mariadb-server
+    name: mariadb
     state: reloaded
+
+- name: daemon reload
+  ansible.builtin.systemd_service:
+    daemon_reload: treu
+    

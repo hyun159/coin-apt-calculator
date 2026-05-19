@@ -112,6 +112,7 @@
     ansible.builtin.file:
      path: /etc/firewalld/zones/public.xml
      state: absent
+    notify: daemon reload
   
 
   - name: 접속 가능 서버 rich-rule 등록

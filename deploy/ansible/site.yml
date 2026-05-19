@@ -1,9 +1,9 @@
 
 
-- name: nginx
-  hosts: web
+- name: db
+  hosts: db
   become: true
   roles:
-    - nginx
+    - db
 
 

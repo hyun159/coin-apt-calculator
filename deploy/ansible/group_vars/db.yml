@@ -3,3 +3,6 @@ firewalld_rich_rule:
   - { name: "control", ip: "10.0.2.10", port: "22" }
   - { name: "was1", ip: "10.0.2.12", port: "3306" }
   - { name: "was2", ip: "10.0.2.13", port: "3306" }
+
+
+db_passwd: "asdf"
